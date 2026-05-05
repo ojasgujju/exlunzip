@@ -1,101 +1,186 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SheetUnlocker Pro</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 
 <style>
+@keyframes pulse-border {
+    0% { border-color: #3b82f6; }
+    50% { border-color: #8b5cf6; }
+    100% { border-color: #3b82f6; }
+}
+.drag-active {
+    animation: pulse-border 2s infinite;
+    background-color: #eff6ff;
+}
 .loader {
-  border: 4px solid #eee;
-  border-top: 4px solid #6366f1;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3b82f6;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
 }
 @keyframes spin {
-  100% { transform: rotate(360deg); }
+    100% { transform: rotate(360deg); }
 }
 </style>
 </head>
 
-<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
+<body class="bg-gray-50 min-h-screen font-sans text-gray-800 flex flex-col">
 
-<div class="max-w-xl w-full p-6 bg-gray-800 rounded-2xl shadow-xl">
+<nav class="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+        <span class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
+            SheetUnlocker Pro
+        </span>
+    </div>
+</nav>
 
-    <div class="text-center mb-6">
-        <h1 class="text-3xl font-bold">SheetUnlocker Pro</h1>
-        <p class="text-gray-400 mt-2">Remove Excel sheet protection instantly</p>
+<main class="flex-grow flex flex-col items-center justify-center p-6">
+    <div class="max-w-xl w-full bg-white rounded-2xl shadow-xl p-8">
+
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-bold text-gray-900 mb-2">Remove Sheet Protection</h1>
+            <p class="text-gray-500 text-sm">
+                Upload your locked .xlsx file. XML protection will be removed and returned instantly.
+            </p>
+        </div>
+
+        <div id="drop-zone"
+            class="border-2 border-dashed border-gray-300 rounded-xl p-10 text-center cursor-pointer hover:bg-gray-50 transition relative">
+
+            <input id="file-input" type="file"
+                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                accept=".xlsx">
+
+            <div id="upload-content">
+                <p class="text-gray-600 font-medium">Click or drag file</p>
+                <p class="text-gray-400 text-sm mt-1">XLSX only</p>
+            </div>
+
+            <div id="processing-content"
+                class="hidden flex flex-col items-center justify-center h-full">
+                <div class="loader mb-4"></div>
+                <p class="text-blue-600 font-medium">Processing...</p>
+            </div>
+        </div>
+
+        <div id="status-message"
+            class="mt-6 text-center text-sm font-medium hidden"></div>
     </div>
 
-    <div class="border-2 border-dashed border-gray-600 rounded-xl p-6 text-center hover:border-indigo-500 transition">
-        <input id="fileInput" type="file" accept=".xlsx" class="hidden" />
-        <label for="fileInput" class="cursor-pointer">
-            <p class="text-gray-300">Click to upload Excel file</p>
-        </label>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl w-full mt-12">
+        <div class="bg-white p-6 rounded-xl shadow-sm border text-center">
+            <h3 class="font-semibold">Instant</h3>
+            <p class="text-gray-500 text-sm mt-2">Serverless execution</p>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-sm border text-center">
+            <h3 class="font-semibold">Secure</h3>
+            <p class="text-gray-500 text-sm mt-2">Memory-only processing</p>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-sm border text-center">
+            <h3 class="font-semibold">No Password</h3>
+            <p class="text-gray-500 text-sm mt-2">XML-level unlock</p>
+        </div>
     </div>
-
-    <div id="fileName" class="mt-3 text-sm text-gray-400"></div>
-
-    <button id="uploadBtn"
-        class="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 py-3 rounded-xl font-semibold transition">
-        Unlock Sheets
-    </button>
-
-    <div id="loader" class="hidden flex justify-center mt-6">
-        <div class="loader"></div>
-    </div>
-
-    <a id="downloadLink" class="hidden block mt-6 text-center bg-green-600 py-3 rounded-xl">
-        Download Unlocked File
-    </a>
-
-    <div class="mt-8 text-xs text-gray-500 text-center">
-        XML-level unlocking • No password required
-    </div>
-
-</div>
+</main>
 
 <script>
-const fileInput = document.getElementById("fileInput");
-const uploadBtn = document.getElementById("uploadBtn");
-const loader = document.getElementById("loader");
-const downloadLink = document.getElementById("downloadLink");
-const fileNameText = document.getElementById("fileName");
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+const uploadContent = document.getElementById('upload-content');
+const processingContent = document.getElementById('processing-content');
+const statusMessage = document.getElementById('status-message');
 
-let selectedFile = null;
+let isProcessing = false;
 
-fileInput.addEventListener("change", () => {
-    selectedFile = fileInput.files[0];
-    fileNameText.innerText = selectedFile ? selectedFile.name : "";
+['dragenter', 'dragover'].forEach(evt => {
+    dropZone.addEventListener(evt, e => {
+        e.preventDefault();
+        dropZone.classList.add('drag-active');
+    });
 });
 
-uploadBtn.addEventListener("click", async () => {
-    if (!selectedFile) return;
+['dragleave', 'drop'].forEach(evt => {
+    dropZone.addEventListener(evt, e => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-active');
+    });
+});
 
-    loader.classList.remove("hidden");
-    downloadLink.classList.add("hidden");
+dropZone.addEventListener('drop', e => handleFile(e.dataTransfer.files[0]));
+fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+
+async function handleFile(file) {
+    if (!file || isProcessing) return;
+
+    if (!file.name.endsWith('.xlsx')) {
+        showStatus('Invalid file type', 'text-red-500');
+        return;
+    }
+
+    isProcessing = true;
+
+    uploadContent.classList.add('hidden');
+    processingContent.classList.remove('hidden');
+    statusMessage.classList.add('hidden');
+    fileInput.disabled = true;
 
     const formData = new FormData();
-    formData.append("file", selectedFile);
+    formData.append('file', file);
 
-    const res = await fetch("/api/unlock", {
-        method: "POST",
-        body: formData
-    });
+    try {
+        const res = await fetch('/api/unlock', {
+            method: 'POST',
+            body: formData
+        });
 
-    const blob = await res.blob();
-    const url = window.URL.createObjectURL(blob);
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text || 'Server error');
+        }
 
-    downloadLink.href = url;
-    downloadLink.download = selectedFile.name.replace(".xlsx", "_unlocked.xlsx");
-    downloadLink.classList.remove("hidden");
+        const blob = await res.blob();
 
-    loader.classList.add("hidden");
-});
+        if (!blob || blob.size === 0) {
+            throw new Error('Empty response');
+        }
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+
+        const base = file.name.replace(/\.[^/.]+$/, "");
+        a.href = url;
+        a.download = `${base}_unlocked.xlsx`;
+
+        document.body.appendChild(a);
+        a.click();
+
+        URL.revokeObjectURL(url);
+
+        showStatus('File unlocked successfully', 'text-green-600');
+
+    } catch (err) {
+        showStatus(err.message, 'text-red-500');
+    } finally {
+        isProcessing = false;
+        uploadContent.classList.remove('hidden');
+        processingContent.classList.add('hidden');
+        fileInput.disabled = false;
+        fileInput.value = '';
+    }
+}
+
+function showStatus(text, color) {
+    statusMessage.textContent = text;
+    statusMessage.className = `mt-6 text-center text-sm font-medium ${color}`;
+    statusMessage.classList.remove('hidden');
+}
 </script>
 
 </body>
