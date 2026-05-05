@@ -1,11 +1,10 @@
-import os
 import zipfile
-import tempfile
-import shutil
+import io
+import os
 import xml.etree.ElementTree as ET
 
-def remove_sheet_protection(xml_path):
-    tree = ET.parse(xml_path)
+def remove_sheet_protection(xml_bytes):
+    tree = ET.ElementTree(ET.fromstring(xml_bytes))
     root = tree.getroot()
 
     namespaces = {'ns': root.tag.split('}')[0].strip('{')} if '}' in root.tag else {}
@@ -13,16 +12,20 @@ def remove_sheet_protection(xml_path):
     removed = False
 
     for elem in root.findall('.//ns:sheetProtection', namespaces) + root.findall('.//sheetProtection'):
-        for parent in root.iter():
-            if elem in list(parent):
-                parent.remove(elem)
-                removed = True
+        parent = root
+        for p in root.iter():
+            if elem in list(p):
+                parent = p
                 break
+        parent.remove(elem)
+        removed = True
 
     if removed:
-        tree.write(xml_path, encoding="utf-8", xml_declaration=True)
+        output = io.BytesIO()
+        tree.write(output, encoding='utf-8', xml_declaration=True)
+        return output.getvalue()
 
-    return removed
+    return xml_bytes
 
 
 def handler(request):
@@ -32,56 +35,42 @@ def handler(request):
             "body": "Method Not Allowed"
         }
 
-    file = request.files.get("file")
+    try:
+        file = request.files.get("file")
+        if not file:
+            return {"statusCode": 400, "body": "No file uploaded"}
 
-    if not file:
+        filename = file.filename
+        name_no_ext = filename.replace(".xlsx", "")
+
+        input_bytes = file.read()
+
+        zip_in = zipfile.ZipFile(io.BytesIO(input_bytes))
+        output_buffer = io.BytesIO()
+
+        with zipfile.ZipFile(output_buffer, "w", zipfile.ZIP_DEFLATED) as zip_out:
+            for item in zip_in.infolist():
+                data = zip_in.read(item.filename)
+
+                if item.filename.startswith("xl/worksheets/") and item.filename.endswith(".xml"):
+                    data = remove_sheet_protection(data)
+
+                zip_out.writestr(item, data)
+
+        output_buffer.seek(0)
+
         return {
-            "statusCode": 400,
-            "body": "No file uploaded"
+            "statusCode": 200,
+            "headers": {
+                "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "Content-Disposition": f'attachment; filename="{name_no_ext}_unlocked.xlsx"'
+            },
+            "body": output_buffer.read(),
+            "isBase64Encoded": True
         }
 
-    filename = file.filename
-    name = filename.replace(".xlsx", "")
-
-    with tempfile.TemporaryDirectory() as work_dir:
-        zip_path = os.path.join(work_dir, "file.zip")
-
-        with open(zip_path, "wb") as f:
-            f.write(file.read())
-
-        extract_dir = os.path.join(work_dir, "extracted")
-
-        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-            zip_ref.extractall(extract_dir)
-
-        worksheets = os.path.join(extract_dir, "xl", "worksheets")
-
-        if os.path.exists(worksheets):
-            for fxml in os.listdir(worksheets):
-                if fxml.endswith(".xml"):
-                    remove_sheet_protection(os.path.join(worksheets, fxml))
-
-        output_zip = os.path.join(work_dir, "out.zip")
-
-        with zipfile.ZipFile(output_zip, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            for root, _, files in os.walk(extract_dir):
-                for f in files:
-                    full = os.path.join(root, f)
-                    rel = os.path.relpath(full, extract_dir)
-                    zipf.write(full, rel)
-
-        output_xlsx = os.path.join(work_dir, f"{name}_unlocked.xlsx")
-        shutil.move(output_zip, output_xlsx)
-
-        with open(output_xlsx, "rb") as f:
-            data = f.read()
-
-    return {
-        "statusCode": 200,
-        "headers": {
-            "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "Content-Disposition": f'attachment; filename="{name}_unlocked.xlsx"'
-        },
-        "body": data,
-        "isBase64Encoded": True
-    }
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "body": str(e)
+        }
