@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SheetUnlocker Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Animations */
+        @keyframes pulse-border {
+            0% { border-color: #3b82f6; }
+            50% { border-color: #8b5cf6; }
+            100% { border-color: #3b82f6; }
+        }
+        .drag-active {
+            animation: pulse-border 2s infinite;
+            background-color: #eff6ff;
+        }
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans text-gray-800 flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            <span class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">SheetUnlocker Pro</span>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow flex flex-col items-center justify-center p-6">
+        <div class="max-w-xl w-full bg-white rounded-2xl shadow-xl p-8 transition-all">
+            
+            <div class="text-center mb-8">
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">Remove Sheet Protection</h1>
+                <p class="text-gray-500 text-sm">Upload your locked .xlsx file. We'll strip the XML protection tags and give it right back.</p>
+            </div>
+
+            <!-- Drag & Drop Zone -->
+            <div id="drop-zone" class="border-2 border-dashed border-gray-300 rounded-xl p-10 text-center cursor-pointer hover:bg-gray-50 transition-colors relative">
+                <input type="file" id="file-input" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".xlsx">
+                
+                <div id="upload-content">
+                    <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                    <p class="text-gray-600 font-medium">Click to upload or drag and drop</p>
+                    <p class="text-gray-400 text-sm mt-1">XLSX files only</p>
+                </div>
+
+                <div id="processing-content" class="hidden flex flex-col items-center justify-center h-full">
+                    <div class="loader mb-4"></div>
+                    <p class="text-blue-600 font-medium">Processing your file...</p>
+                </div>
+            </div>
+
+            <!-- Status Message -->
+            <div id="status-message" class="mt-6 text-center text-sm font-medium hidden"></div>
+
+        </div>
+        
+        <!-- Feature cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl w-full mt-12">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center text-center">
+                <span class="text-blue-500 mb-3"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg></span>
+                <h3 class="font-semibold text-gray-800">Instant Processing</h3>
+                <p class="text-gray-500 text-sm mt-2">Zero wait times. Powered by Vercel Serverless Functions.</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center text-center">
+                <span class="text-purple-500 mb-3"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg></span>
+                <h3 class="font-semibold text-gray-800">Safe & Secure</h3>
+                <p class="text-gray-500 text-sm mt-2">Files are processed in memory and immediately deleted.</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center text-center">
+                <span class="text-green-500 mb-3"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg></span>
+                <h3 class="font-semibold text-gray-800">No Password Required</h3>
+                <p class="text-gray-500 text-sm mt-2">Bypasses XML constraints directly without brute force.</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const uploadContent = document.getElementById('upload-content');
+        const processingContent = document.getElementById('processing-content');
+        const statusMessage = document.getElementById('status-message');
+
+        // Drag and drop styles
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropZone.classList.add('drag-active', 'border-blue-500');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('drag-active', 'border-blue-500');
+            });
+        });
+
+        // Handle file drop or selection
+        dropZone.addEventListener('drop', (e) => handleFile(e.dataTransfer.files[0]));
+        fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+
+        async function handleFile(file) {
+            if (!file) return;
+            
+            if (!file.name.endsWith('.xlsx')) {
+                showStatus('Error: Please upload a valid .xlsx file', 'text-red-500');
+                return;
+            }
+
+            // UI update: Show processing
+            uploadContent.classList.add('hidden');
+            processingContent.classList.remove('hidden');
+            statusMessage.classList.add('hidden');
+            fileInput.disabled = true;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                // Call Vercel Serverless Backend
+                const response = await fetch('/api/unlock', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error('Processing failed on the server.');
+
+                // Trigger download of the returned file
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = downloadUrl;
+                // Create a nice output filename based on original
+                const baseName = file.name.replace(/\.[^/.]+$/, "");
+                a.download = `${baseName}_unlocked.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(downloadUrl);
+                
+                showStatus('Success! File unlocked and downloaded.', 'text-green-600');
+            } catch (error) {
+                showStatus(error.message, 'text-red-500');
+            } finally {
+                // Reset UI
+                uploadContent.classList.remove('hidden');
+                processingContent.classList.add('hidden');
+                fileInput.disabled = false;
+                fileInput.value = ''; // clear input
+            }
+        }
+
+        function showStatus(text, colorClass) {
+            statusMessage.textContent = text;
+            statusMessage.className = `mt-6 text-center text-sm font-medium ${colorClass}`;
+            statusMessage.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
